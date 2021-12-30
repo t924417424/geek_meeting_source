@@ -6,10 +6,10 @@
  * 平台支持
 
     * [x] Web
-    * [] Android
-    * [] Ios
-    * [] Windows
-    * [] Linux
+    * [ ] Android
+    * [ ] Ios
+    * [ ] Windows
+    * [ ] Linux
  * 项目技术栈
 
     * 前端：Flutter
