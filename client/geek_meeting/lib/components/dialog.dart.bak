@@ -1,0 +1,314 @@
+import 'dart:convert';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:geek_meeting/models/create_meeting.dart';
+import 'package:geek_meeting/models/home.dart';
+import 'package:geek_meeting/route/routes_path.dart';
+import 'package:geek_meeting/utils/common.dart';
+import 'package:geek_meeting/utils/global.dart';
+import 'package:get/get.dart';
+
+// 用户协议Dialog
+Future<Widget?> showMyDiaLog(BuildContext context, String title, String text) {
+  return showDialog<Widget>(
+    context: context,
+    builder: (context) {
+      return SimpleDialog(
+        children: [
+          SizedBox(
+            width: MediaQuery.of(context).size.height / 2,
+            height: MediaQuery.of(context).size.height / 3,
+            child: Scrollbar(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Text(text),
+              ),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              InkWell(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    "确定",
+                    style: TextStyle(color: Colors.blue[300], fontSize: 15),
+                  ),
+                ),
+                onTap: () => {Navigator.pop(context)},
+              ),
+            ],
+          )
+        ],
+      );
+    },
+  );
+}
+
+// 加入会议Dialog
+Future<Widget?> showJoinRoom(BuildContext context) {
+  final home = HomeModel();
+  final TextEditingController _roomId = TextEditingController();
+  final TextEditingController _userName = TextEditingController();
+  final TextEditingController _passWord = TextEditingController();
+  return showDialog<Widget>(
+    context: context,
+    builder: (context) {
+      return SimpleDialog(
+        children: [
+          Center(
+            child: Container(
+              width: 300,
+              height: 330,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 240,
+                      child: GetBuilder<HomeModel>(
+                        init: home,
+                        builder: (_) {
+                          return Column(
+                            children: [
+                              TextField(
+                                controller: _userName,
+                                maxLength: 10,
+                                onTap: () => {home.nameErr = null},
+                                decoration: InputDecoration(
+                                    icon: const Icon(Icons.person_pin),
+                                    labelText: "请输入昵称",
+                                    errorText: home.nameErr
+                                    // suffix: ElevatedButton(
+                                    //   onPressed: () {},
+                                    //   child: const Icon(Icons.send_to_mobile),
+                                    // ),
+                                    ),
+                              ),
+                              TextField(
+                                controller: _roomId,
+                                maxLength: 6,
+                                keyboardType: TextInputType.number,
+                                onTap: () => {home.errType = null},
+                                decoration: InputDecoration(
+                                    icon:
+                                        const Icon(Icons.meeting_room_rounded),
+                                    labelText: "请输入房间号",
+                                    prefixText: "MEETING - ",
+                                    errorText: home.errMsg
+                                    // suffix: ElevatedButton(
+                                    //   onPressed: () {},
+                                    //   child: const Icon(Icons.send_to_mobile),
+                                    // ),
+                                    ),
+                              ),
+                              TextField(
+                                controller: _passWord,
+                                obscureText: true,
+                                maxLength: 6,
+                                onTap: () => {home.passWordErr = false},
+                                decoration: InputDecoration(
+                                  icon: const Icon(Icons.keyboard_outlined),
+                                  labelText: "会议密码，没有则留空。",
+                                  errorText:
+                                      home.passWordErr ? "会议密码错误！" : null,
+                                  // suffix: ElevatedButton(
+                                  //   onPressed: () {},
+                                  //   child: const Icon(Icons.send_to_mobile),
+                                  // ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_userName.text.trim().isEmpty) {
+                            home.nameErr = "昵称不能为空！";
+                            return;
+                          }
+                          if (_roomId.text.isEmpty) {
+                            home.errType = err.roomIdErr;
+                            return;
+                          }
+                          Get.toNamed(RoutesPath.Meeting, parameters: {
+                            "name": _userName.text,
+                            "roomId": _roomId.text
+                          });
+                        },
+                        child: const Icon(
+                          Icons.keyboard_arrow_right_rounded,
+                          size: 45,
+                        ),
+                        style: ButtonStyle(
+                          shape: MaterialStateProperty.all(
+                            const CircleBorder(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+// 创建会议Dialog
+Future<Widget?> showCreateRoom(BuildContext context) {
+  final createMeeting = CreateMeetingModel();
+  final TextEditingController _passwd = TextEditingController();
+  return showDialog<Widget>(
+    context: context,
+    builder: (context) {
+      return SimpleDialog(
+        children: [
+          Center(
+            child: Container(
+              width: 300,
+              height: 330,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 240,
+                      child: GetBuilder<CreateMeetingModel>(
+                        init: createMeeting,
+                        builder: (_) {
+                          return Column(
+                            children: [
+                              // Text(fomatDate(createMeeting.startTime)),
+                              // Text(fomatDate(createMeeting.endTime)),
+                              const Text("创建会议"),
+                              TextField(
+                                readOnly: true,
+                                onTap: () async {
+                                  DateTime? startTime =
+                                      await selectTime(context);
+                                  if (startTime != null) {
+                                    createMeeting.startTime = startTime;
+                                  }
+                                },
+                                keyboardType: TextInputType.datetime,
+                                decoration: InputDecoration(
+                                  icon: const Icon(Icons.access_time),
+                                  hintText: fomatDate(createMeeting.startTime),
+                                  helperText: "开始时间",
+                                ),
+                              ),
+                              TextField(
+                                readOnly: true,
+                                onTap: () async {
+                                  DateTime? endTime = await selectTime(context,
+                                      startTime: createMeeting.startTime);
+                                  if (endTime != null &&
+                                      endTime
+                                          .isAfter(createMeeting.startTime)) {
+                                    createMeeting.endTime = endTime;
+                                  }
+                                },
+                                decoration: InputDecoration(
+                                  icon: const Icon(Icons.access_time),
+                                  hintText: fomatDate(createMeeting.endTime),
+                                  helperText: "结束时间",
+                                ),
+                              ),
+                              TextField(
+                                controller: _passwd,
+                                maxLength: 6,
+                                onTap: () async {},
+                                decoration: const InputDecoration(
+                                  icon: Icon(Icons.vpn_key_outlined),
+                                  hintText: "会议密码",
+                                  helperText: "会议密码,留空则不启用。",
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // debugPrint(
+                          // "start time:${createMeeting.startTime.formatNet()}\r\nend time:${createMeeting.endTime.formatNet()}\r\npasswd:${_passwd.text}");
+                          NetUtil.net.post("/create_meeting", data: {
+                            "start_time": createMeeting.startTime.formatNet(),
+                            "end_time": createMeeting.endTime.formatNet(),
+                            "password": _passwd.text
+                          }, success: (data) {
+                            Map<String, dynamic> result = jsonDecode(data);
+                            if (result["code"] == 200) {
+                              debugPrint(result["data"].toString());
+                            } else {
+                              Get.snackbar("系统提示", result["msg"]);
+                            }
+                          });
+                        },
+                        child: const Text("创建会议"),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<DateTime?> selectTime(BuildContext context,
+    {DateTime? startTime}) async {
+  DateTime? date = await showDatePicker(
+    context: context,
+    locale: const Locale('zh'),
+    initialDate: startTime ?? DateTime.now(),
+    firstDate: startTime ?? DateTime.now(),
+    lastDate: startTime ?? DateTime.now().add(const Duration(days: 7)),
+    cancelText: "取消",
+    helpText: "选择日期",
+    confirmText: "选择时间",
+    initialEntryMode: DatePickerEntryMode.calendarOnly,
+  );
+  if (date == null) return null;
+  TimeOfDay? time = await showTimePicker(
+    context: context,
+    helpText: "选择时间",
+    initialTime: startTime == null
+        ? TimeOfDay.now()
+        : TimeOfDay(hour: startTime.hour, minute: startTime.minute),
+  );
+  if (time == null) return null;
+  DateTime meetinDate = DateTime(
+    date.year,
+    date.month,
+    date.day,
+    time.hour,
+    time.minute,
+  );
+  return meetinDate;
+}

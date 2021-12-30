@@ -1,0 +1,199 @@
+import 'dart:convert';
+import 'dart:html';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:get/get.dart';
+
+class MeetingRoom extends GetxController {
+  late final WebSocket _signalServer;
+  final MeetingModel _meeting = MeetingModel();
+  late RTCPeerConnection _peerConnection;
+  MeetingModel get meeting => _meeting;
+  MeetingRoom(String url) {
+    _signalServer = WebSocket(url);
+    _initSignal();
+  }
+
+  void _initSignal() {
+    _signalServer.onOpen.listen((event) async {
+      debugPrint("ws init");
+      _peerConnection = await createPeerConnection({}, {});
+    });
+    _signalServer.onMessage.listen((event) async {
+      window.console.log(event.data);
+      var raw = event.data;
+      Map<String, dynamic> msg = jsonDecode(raw);
+      switch (msg['event']) {
+        case 'candidate':
+          Map<String, dynamic> parsed = jsonDecode(msg['data']);
+          _peerConnection
+              .addCandidate(RTCIceCandidate(parsed['candidate'], null, 0));
+          return;
+        case 'offer':
+          Map<String, dynamic> offer = jsonDecode(msg['data']);
+
+          // SetRemoteDescription and create answer
+          await _peerConnection.setRemoteDescription(
+              RTCSessionDescription(offer['sdp'], offer['type']));
+          RTCSessionDescription answer = await _peerConnection.createAnswer({});
+          await _peerConnection.setLocalDescription(answer);
+
+          // Send answer over WebSocket
+          _signalServer.sendString(const JsonEncoder().convert({
+            'event': 'answer',
+            'data': const JsonEncoder()
+                .convert({'type': answer.type, 'sdp': answer.sdp})
+          }));
+          return;
+      }
+    });
+    _signalServer.onError.listen((event) {
+      window.console.log(event);
+    });
+  }
+
+  void _initPeer() {
+    // 收到ice消息
+    _peerConnection.onIceCandidate = (candidate) {
+      if (candidate == null) {
+        return;
+      }
+      window.console.log("on candidate");
+      _signalServer.sendString(const JsonEncoder().convert({
+        "event": "candidate",
+        "data": const JsonEncoder().convert({
+          'sdpMLineIndex': candidate.sdpMlineIndex,
+          'sdpMid': candidate.sdpMid,
+          'candidate': candidate.candidate,
+        })
+      }));
+    };
+
+    // 收到track
+    _peerConnection.onTrack = (event) async {
+      if (event.track.kind == 'video' && event.streams.isNotEmpty) {
+        // var renderer = RTCVideoRenderer();
+        // 设置音频输出设备
+        // renderer.audioOutput = "";
+        // await renderer.initialize();
+        // renderer.srcObject = event.streams[0];
+        // renderer.srcObject!.getAudioTracks()[0].setVolume();
+        // 收到stream后与房间内用户进行匹配，并设置用户stream
+        _meeting.users
+            .firstWhere((element) => element.streamId == event.streams[0].id)
+            .stream = event.streams[0];
+      }
+    };
+  }
+
+  void pushStream(MediaStream stream) {
+    stream.getTracks().forEach((track) async {
+      await _peerConnection.addTrack(track, stream);
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _peerConnection.dispose();
+    _meeting.users.map((e) => _meeting.leave(e.id)).toSet();
+    _signalServer.close();
+  }
+}
+
+class MeetingModel extends GetxController {
+  List<MeetingUser> users = [];
+  int get counter => users.length;
+  // 用户加入
+  void join(MeetingUser user) {
+    users.add(user);
+    update();
+  }
+
+  // 用户离开
+  void leave(int id) {
+    MeetingUser user = users.firstWhere((user) => user.id == id);
+    users.remove(user);
+    update();
+  }
+}
+
+// 暂时保留，用于区分用户身份
+enum userIdentity {
+  leader,
+  follower,
+}
+
+class MeetingUser extends GetxController {
+  int id;
+  String name;
+  String? streamId;
+  bool _display = false;
+  bool _microphone = false;
+  MediaStream? _stream;
+  final videoRenderer = RTCVideoRenderer();
+  userIdentity _identity = userIdentity.follower;
+  MeetingUser(this.id, this.name) {
+    videoRenderer.initialize();
+  }
+
+  /// 这里使用stream.id进行用户stream区分，故stream.id不再变动
+  /// 若重新选择设备后需要产生新的流，则直接进行track替换
+  set stream(MediaStream? stream) {
+    // debugPrint(stream?.id);
+    _stream = _stream ?? stream;
+    videoRenderer.srcObject = stream!;
+    if (stream.getVideoTracks().isNotEmpty) {
+      _display = true;
+    }
+    if (stream.getAudioTracks().isNotEmpty) {
+      _microphone = true;
+    }
+    _setStreamEvent();
+    update();
+  }
+
+  void _setStreamEvent() {
+    stream!.getTracks().forEach((track) {
+      // track停止推流事件
+      track.onEnded = () {
+        if (track.kind == 'video') {
+          _display = false;
+        } else {
+          _microphone = false;
+        }
+      };
+      // track静音事件
+      track.onMute = () {
+        _microphone = false;
+      };
+      // track取消静音事件
+      track.onUnMute = () {
+        _microphone = true;
+      };
+    });
+  }
+
+  MediaStream? get stream => _stream;
+
+  bool get display => _display;
+
+  set display(bool state) {
+    _display = state;
+    update();
+  }
+
+  bool get microphone => _microphone;
+
+  set microphone(bool state) {
+    _microphone = state;
+    update();
+  }
+
+  userIdentity get identity => _identity;
+
+  set identity(userIdentity identity) {
+    _identity = identity;
+    update();
+  }
+}
