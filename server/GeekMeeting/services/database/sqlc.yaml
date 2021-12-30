@@ -1,0 +1,12 @@
+version: 1
+packages:
+  - name: "meetingDb"
+    path: "./mysql/meeting"
+    schema: "schema.sql"
+    queries: "query.sql"
+    engine: "mysql"
+    emit_json_tags: true
+overrides:
+  - go_type: "GeekMeeting/internal/sqltime.NullTime"
+    db_type: "timestamp"
+    nullable: true

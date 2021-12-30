@@ -1,0 +1,27 @@
+[server]
+[server.web]
+addr = "127.0.0.1:8080"
+jwtKey = "ABCASOIBOIBNFKLSJISDASFMPBIIO"
+maxTime = 30    # 每场会议最长时间（分钟）
+roomLimit = 5   # 每天每个用户最多可创建的会议数量
+roomPeople = 20 # 每场会议最大人数
+
+// 目前仅支持mysql
+[sql]
+[sql.databases]
+driver = "mysql"
+dsn = "root:root@tcp(127.0.0.1:3306)/meeting?charset=utf8&parseTime=True&loc=Local"
+
+# Redis设置
+[sql.cache]
+Addr = "127.0.0.1:6379"
+username = ""
+password = ""
+
+// smtp设置
+[mail]
+server = "smtp.xxx.com"
+port = 25
+name = "" # 建议与username保持一致
+username = ""
+password = ""
