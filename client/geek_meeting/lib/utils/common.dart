@@ -38,8 +38,7 @@ String fomatDate(DateTime date) {
 }
 
 bool isEmail(String? input) {
-  String regexEmail =
-      "^([a-z0-9A-Z]+[-|\\.]?)+[a-z0-9A-Z]@([a-z0-9A-Z]+(-[a-z0-9A-Z]+)?\\.)+[a-zA-Z]{2,}\$";
+  String regexEmail = "[\\w\\.]+@\\w+\\.[a-z]{2,3}(\\.[a-z]{2,3})?";
   if (input == null || input.isEmpty) return false;
   return RegExp(regexEmail).hasMatch(input);
 }
