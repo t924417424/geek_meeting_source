@@ -36,6 +36,19 @@ class Meeting extends StatelessWidget {
       });
     }
 
+    void _switchStream() {
+      devices(context).then((setting) {
+        if (setting.localRenderer.srcObject == null) {
+          return;
+        }
+        setting.gcRender = true;
+        stream = setting.localRenderer.srcObject;
+        room!.switchSelfStream(stream);
+        room!.audioOutput = setting.audioDevices;
+        Future.delayed(const Duration(seconds: 1), () => setting.dispose());
+      });
+    }
+
     // 初始化room;
     room = MeetingRoom(
       roomKey!,
@@ -74,7 +87,7 @@ class Meeting extends StatelessWidget {
                     runSpacing: 10,
                     children: room!.users
                         .map(
-                          (e) => meetingItem(e, _setting),
+                          (e) => meetingItem(e, _switchStream),
                         )
                         .toList(),
                   );

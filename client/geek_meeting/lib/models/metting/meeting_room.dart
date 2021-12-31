@@ -55,7 +55,7 @@ class MeetingRoom extends GetxController {
   //   _signalServer.sendString(const JsonEncoder()
   //       .convert({'event': 'verify', 'data': _self.id.toString()}));
   // }
-
+  // 初始化用户流
   void initSelfStream(MediaStream? stream) {
     debugPrint("init stream $stream");
     stream?.getTracks().forEach((track) async {
@@ -74,6 +74,11 @@ class MeetingRoom extends GetxController {
     // _signalServer.sendString(const JsonEncoder().convert({
     //   "event": "Renegotiation",
     // }));
+    _self.stream = stream;
+  }
+
+  // 用户更换流
+  void switchSelfStream(MediaStream? stream) {
     _self.stream = stream;
   }
 

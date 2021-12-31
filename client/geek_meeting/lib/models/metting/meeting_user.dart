@@ -1,6 +1,4 @@
 // 暂时保留，用于区分用户身份
-import 'dart:isolate';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:get/get.dart';
@@ -40,6 +38,7 @@ class MeetingUser extends GetxController {
   /// 若重新选择设备后需要产生新的流，则直接进行track替换
   set stream(MediaStream? newStream) {
     debugPrint("set userId:$id streamid:${newStream?.id}");
+    // Helper.switchCamera(track)
     if (newStream == null) {
       // videoRenderer.srcObject?.dispose();
       _stream = null;
@@ -65,6 +64,7 @@ class MeetingUser extends GetxController {
       // }
       List<MediaStreamTrack>? tracks = _stream?.getTracks();
       tracks?.forEach((track) {
+        track.stop();
         _stream?.removeTrack(track);
       });
       tracks?.clear();
