@@ -221,7 +221,7 @@ class MeetingRoom extends GetxController {
           'username': 'webrtc@live.com'
         },
       ],
-      'iceTransportPolicy': 'relay',
+      // 'iceTransportPolicy': 'relay',
     };
     _peerConnection = await createPeerConnection({..._iceServers}, {});
     _peerConnection.onRenegotiationNeeded = () {
