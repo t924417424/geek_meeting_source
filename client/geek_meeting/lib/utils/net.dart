@@ -59,6 +59,7 @@ class Net {
         .add(InterceptorsWrapper(onRequest: (options, handler) async {
       EasyLoading.show(dismissOnTap: true);
       // Do something before request is sent
+      debugPrint("before request");
       var accessToken = "";
       var refreshToken = "";
       window.localStorage.forEach((key, value) {
@@ -107,6 +108,7 @@ class Net {
       // 这样请求将被中止并触发异常，上层catchError会被调用。
     }, onResponse: (response, handler) {
       EasyLoading.dismiss();
+      debugPrint("onresponse");
       // 添加拦截器，处理token
       Map<String, dynamic> data;
       if (response.statusCode == HttpStatus.ok) {
@@ -124,21 +126,15 @@ class Net {
         window.localStorage.remove("access_token");
         window.localStorage.remove("refresh_token");
         Get.showSnackbar(
-          GetSnackBar(
+          const GetSnackBar(
             title: "提示",
             message: "身份验证过期，请重新登陆。",
-            snackbarStatus: (status) {
-              if (status != null) {
-                if (status == SnackbarStatus.CLOSED) {
-                  try {
-                    Future.delayed(const Duration(milliseconds: 100),
-                        () => {Get.offNamed(RoutesPath.Home)});
-                  } catch (_) {}
-                }
-              }
-            },
           ),
         );
+        try {
+          Future.delayed(const Duration(milliseconds: 100),
+              () => {window.location.href = "/"});
+        } catch (_) {}
         // var access_token = "";
         // var refresh_token = "";
         // window.localStorage.forEach((key, value) {
@@ -179,6 +175,21 @@ class Net {
     }, onError: (DioError e, handler) {
       EasyLoading.dismiss();
       // Do something with response error
+      if (e.response?.statusCode == HttpStatus.unauthorized) {
+        window.localStorage.remove("access_token");
+        window.localStorage.remove("refresh_token");
+        Get.showSnackbar(
+          const GetSnackBar(
+            title: "提示",
+            message: "身份验证过期，请重新登陆。",
+          ),
+        );
+        try {
+          Future.delayed(const Duration(milliseconds: 1000),
+              () => {window.location.href = "/"});
+        } catch (_) {}
+        return;
+      }
       return handler.next(e); //continue
       // 如果你想完成请求并返回一些自定义数据，可以resolve 一个`Response`,如`handler.resolve(response)`。
       // 这样请求将会被终止，上层then会被调用，then中返回的数据将是你的自定义response.
