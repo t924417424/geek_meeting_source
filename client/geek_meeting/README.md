@@ -19,7 +19,7 @@
       * [后端信令服务器地址](./lib/models/metting/meeting_room.dart#L19)
       * [iceServer修改（stun/turn服务）](./lib/models/metting/meeting_room.dart#L208)
    * 构建项目到web端：`flutter build web`
-   * 由于浏览器安全策略，要求在非本地IP的时候需要前后端必须同为htts/wss才可以正常使用
+   * 由于浏览器安全策略，要求在非本地IP的时候需要前后端必须同为https/wss才可以正常使用
 
  ## about
 
